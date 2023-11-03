@@ -120,8 +120,8 @@ z_sample_p  = model(torch.from_numpy(dataset_train[:,:2]).float(), torch.from_nu
 
 for i in range(z_tst_out.shape[-1]):
     fig, axs = plt.subplots(1,1)
-    axs.plot(dataset_train[:,1], z_trn_out[:,i], ".", c = cc.black)
-    axs.plot(dataset_train[:,1], z_sample_p[:,i], ".", c = cc.red)
+    axs.plot(dataset_train[:,1], z_trn_out[:,i],  ".", c = cc.black)
+    axs.plot(dataset_train[:,1], z_sample_p[:,i], "x", c = cc.red)
     axs.set_xlabel("Radius")
     axs.set_ylabel(rf"$z_{i}$")
     plt.legend(["Reference", "Prediction"])
