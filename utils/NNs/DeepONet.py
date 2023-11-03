@@ -223,11 +223,13 @@ class DeepONet(nn.Module):
         # x = torch.softmax(x, dim=-1)
         # x = torch.matmul(x, V)
         # x = self.W_o(x)
-        x  = torch.concat([yB,yT],dim=0)
-        x  = self.Conv(x)
-
+        # # x  = torch.concat([yB,yT],dim=0)
+        # x  = self.Conv(x)
+        # x = yB * yT
         # return F.tanh(x) 
-        return x 
+        x  = torch.concat([yB,yT],dim=1)
+    
+        return x
     
     def forward(self,xB,xT):
         """"
@@ -248,6 +250,10 @@ class DeepONet(nn.Module):
         x =  self.Attn_Operator(xB,xT)
 
         return self.mrgNet(x)
+    
+
+
+
 if __name__ == "__main__":
     brh_in=5; brh_out=5; brh_hidden=20; brh_nlayer=2; brh_act=nn.Tanh() 
     trk_in=2; trk_out=5; trk_hidden=20; trk_nlayer=2; trk_act=nn.Tanh() 

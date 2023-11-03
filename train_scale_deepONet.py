@@ -41,12 +41,19 @@ dataset_test  = data['dataset_test']
 
 
 t_trn     = dataset_train[:,0]
+t_trn_max = t_trn.max(); t_trn_min = t_trn.min()
+t_trn     = 1 - 2* ((t_trn - t_trn_min)/(t_trn_max - t_trn_min))
+
 r_trn     = dataset_train[:,1]
 z_trn_hlp = dataset_train[:,2:-5]
 
 z_trn_out = dataset_train[:, -5: ]
 
 t_tst     = dataset_test[:,0]
+t_tst_max = t_tst.max(); t_tst_min = t_tst.min()
+t_tst     = 1 - 2* ((t_tst - t_tst_min)/(t_tst_max - t_tst_min))
+
+
 r_tst     = dataset_test[:,1]
 z_tst_hlp = dataset_test[:,2:-5]
 z_tst_out = dataset_test[:,-5:]
@@ -64,11 +71,10 @@ print(f"INFO: DataLoader generated, NTrain={len(train_dl)}, Nval={len(val_dl)}")
 print("#"*30)
 print(f"Compile Model")
 
-model       = DeepONet(cfg.brh_in, cfg.brh_out, cfg.brh_hidden, cfg.brh_nlayer, cfg.brh_act, 
-                 cfg.trk_in, cfg.trk_out, cfg.trk_hidden, cfg.trk_nlayer, cfg.trk_act,
-                 cfg.mrg_in, cfg.mrg_out, cfg.mrg_hidden, cfg.mrg_nlayer, cfg.mrg_act,
-                 
-                 )
+model       = DeepONet( cfg.brh_in, cfg.brh_out, cfg.brh_hidden, cfg.brh_nlayer, cfg.brh_act, 
+                        cfg.trk_in, cfg.trk_out, cfg.trk_hidden, cfg.trk_nlayer, cfg.trk_act,
+                        cfg.mrg_in, cfg.mrg_out, cfg.mrg_hidden, cfg.mrg_nlayer, cfg.mrg_act,
+                        )
 
 optimizer   = torch.optim.Adam(model.parameters(), lr = cfg.lr, eps= 1e-7)
 
@@ -106,7 +112,11 @@ print(f"INFO: CheckPoint saved!")
 
 print("#"*30)
 print("Validating On Training Data")
+
+
+
 z_sample_p  = model(torch.from_numpy(dataset_train[:,:2]).float(), torch.from_numpy(z_trn_hlp).float()).detach().cpu().numpy()
+
 
 for i in range(z_tst_out.shape[-1]):
     fig, axs = plt.subplots(1,1)
@@ -122,14 +132,15 @@ print("#"*30)
 print("Validating On test data")
 
 z_sample_p  = model(torch.from_numpy(dataset_test[:,:2]).float(), torch.from_numpy(z_tst_hlp).float()).detach().cpu().numpy()
+
 np.savez_compressed(save_pred + case_name + '.npz',
                     zp  = z_sample_p,)
                  
 for i in range(z_tst_out.shape[-1]):
     fig, axs = plt.subplots(1,1)
     axs.plot(dataset_test[:,1], z_tst_out[:,i], ".", c = cc.black)
-    axs.plot(dataset_test[:,1], z_sample_p[:,i], ".", c = cc.red)
+    axs.plot(dataset_test[:,1], z_sample_p[:,i], "x", c = cc.red)
     axs.set_xlabel("Radius")
-    axs.set_ylabel(rf"$z_{i}$")
+    axs.set_ylabel(rf"$z_{i+1}$")
     plt.legend(["Reference", "Prediction"])
     plt.savefig(save_fig + f"Test_Z_{i+1}_" +  case_name + ".jpg", bbox_inches='tight')

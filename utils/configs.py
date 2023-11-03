@@ -3,24 +3,24 @@ class deepOnet_Config:
 
     brh_in          =   2  
     brh_out         =   5
-    brh_hidden      =   80
-    brh_nlayer      =   4
-    brh_act         =   nn.ELU()
+    brh_hidden      =   512
+    brh_nlayer      =   2
+    brh_act         =   nn.Tanh()
     
-    trk_in          =   5
+    trk_in          =   125
     trk_out         =   5
-    trk_hidden      =   80
-    trk_nlayer      =   4
-    trk_act         =   nn.ELU()
+    trk_hidden      =   512
+    trk_nlayer      =   2
+    trk_act         =   nn.Tanh()
 
 
-    mrg_in          =   5
+    mrg_in          =   10
     mrg_out         =   5
-    mrg_hidden      =   40
-    mrg_nlayer      =   4
-    mrg_act         =   nn.ELU()
+    mrg_hidden      =   512
+    mrg_nlayer      =   2
+    mrg_act         =   nn.Tanh()
     
-    Epoch           =   10
+    Epoch           =   100
     lr              =   1e-3 
     batch_size      =   512
     
