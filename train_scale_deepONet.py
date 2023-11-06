@@ -123,7 +123,7 @@ for i in range(z_tst_out.shape[-1]):
     axs.plot(dataset_train[:,1], z_trn_out[:,i],  ".", c = cc.black)
     axs.plot(dataset_train[:,1], z_sample_p[:,i], "x", c = cc.red)
     axs.set_xlabel("Radius")
-    axs.set_ylabel(rf"$z_{i}$")
+    axs.set_ylabel(rf"$z_{i+1}$")
     plt.legend(["Reference", "Prediction"])
     plt.savefig(save_fig + f"Train_Z_{i+1}_" +  case_name + ".jpg", bbox_inches='tight')
 
