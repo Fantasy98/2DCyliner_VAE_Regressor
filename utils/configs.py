@@ -20,7 +20,7 @@ class deepOnet_Config:
     mrg_nlayer      =   4
     mrg_act         =   nn.Tanh()
     
-    Epoch           =   100
+    Epoch           =   10
     lr              =   1e-3 
     batch_size      =   512
     

@@ -1,4 +1,5 @@
 01_Data/
 02_Pred/
 # 03_CheckPoint/
-# 04_Figs/
+#04_Figs/
+slurm*

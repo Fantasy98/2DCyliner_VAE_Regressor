@@ -106,7 +106,9 @@ print(f"INFO: CheckPoint saved!")
 
 print("#"*30)
 print("Validating On Training Data")
-z_sample_p  = model(torch.from_numpy(dataset_train[:,:2]).float(), torch.from_numpy(z_trn_hlp).float()).detach().cpu().numpy()
+
+
+z_sample_p  = model(torch.from_numpy(dataset_train[:,:2]).float().to(device), torch.from_numpy(z_trn_hlp).float().to(device)).detach().cpu().numpy()
 
 for i in range(z_tst_out.shape[-1]):
     fig, axs = plt.subplots(1,1)
@@ -121,7 +123,7 @@ for i in range(z_tst_out.shape[-1]):
 print("#"*30)
 print("Validating On test data")
 
-z_sample_p  = model(torch.from_numpy(dataset_test[:,:2]).float(), torch.from_numpy(z_tst_hlp).float()).detach().cpu().numpy()
+z_sample_p  = model(torch.from_numpy(dataset_test[:,:2]).float().to(device), torch.from_numpy(z_tst_hlp).float().to(device)).detach().cpu().numpy()
 np.savez_compressed(save_pred + case_name + '.npz',
                     zp  = z_sample_p,)
                  
@@ -133,3 +135,6 @@ for i in range(z_tst_out.shape[-1]):
     axs.set_ylabel(rf"$z_{i}$")
     plt.legend(["Reference", "Prediction"])
     plt.savefig(save_fig + f"Test_Z_{i+1}_" +  case_name + ".jpg", bbox_inches='tight')
+
+
+print("Done")
