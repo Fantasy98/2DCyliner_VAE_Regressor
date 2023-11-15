@@ -21,7 +21,7 @@ class DeepONet(nn.Module):
 
         Args: 
         
-            brh_in      :  (int) Input of the branch Net
+            brh_in      :  (int) Input of the branch Net (r,t)
             
             brh_out     :  (int) Output of the branch Net
             
@@ -32,7 +32,7 @@ class DeepONet(nn.Module):
             brh_act     :  (nn.) Activation Func of the branch Net
 
 
-            trk_in      :  (int) Input of the trunk Net
+            trk_in      :  (int) Input of the trunk Net (z_hlp)
             
             trk_out     :  (int) Output of the trunk Net
             
@@ -62,6 +62,7 @@ class DeepONet(nn.Module):
         self.mrgNet     =   self.Build_Merge_Net(mrg_in, mrg_out, mrg_hidden, mrg_nlayer, mrg_act)
         self.brh_out    =   brh_out
         self.trk_out    =   trk_out
+        self.mrg_in     =   mrg_in
         
         self.W_q = nn.Linear(trk_out, trk_out)
         self.W_k = nn.Linear(trk_out, trk_out)
@@ -140,7 +141,7 @@ class DeepONet(nn.Module):
         model = nn.Sequential()
 
         ## Build input 
-        layer   =   nn.Linear(trk_in, trk_hidden);
+        layer   =   nn.Linear(trk_in, trk_hidden);   #Q is new layer added to olde later? add module?
         nn.init.xavier_normal_(layer.weight); nn.init.zeros_(layer.bias)
         model.add_module("trk_in", layer)
         
@@ -202,6 +203,7 @@ class DeepONet(nn.Module):
 
         print(f"INFO: Trunk Built, Architecture: \n{model.eval}")
         return model
+
     def Attn_Operator(self, yB, yT):
         """
         We use the trunk and branch output for computing the attention 
@@ -215,22 +217,100 @@ class DeepONet(nn.Module):
 
             The attention product as the prediction
         """
-        # Q = self.W_q(yT)
-        # K = self.W_k(yT)
-        # V = self.W_v(yB)
+        Q = self.W_q(yT)
+        K = self.W_k(yT)
+        V = self.W_v(yB)
 
-        # x = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.trk_out)
-        # x = torch.softmax(x, dim=-1)
-        # x = torch.matmul(x, V)
-        # x = self.W_o(x)
-        # # x  = torch.concat([yB,yT],dim=0)
-        # x  = self.Conv(x)
-        # x = yB * yT
-        # return F.tanh(x) 
+        x = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.trk_out)
+        x = torch.softmax(x, dim=-1)
+        x = torch.matmul(x, V)
+        x = self.W_o(x)
+        x  = self.Conv(x)
+        x = yB * yT
+        return F.tanh(x)   
+
+    def Concat_Operator(self, yB, yT):
+        """
+        We use the trunk and branch output for computing the attention 
+
+        Args:
+
+            yB  :   The ouput from branch Net 
+            yT  :   The ouput from trunk Net 
+        
+        Returns:
+
+            concatenating the outputs of two nets  (bs, N_yB + N_yT )
+        """
+
+
         x  = torch.concat([yB,yT],dim=1)
-    
+
+
         return x
+
+    def Dot_Operator(self, yB, yT):
+        """
+        We use the trunk and branch output for computing the attention 
+
+        Args:
+
+            yB  :   The ouput from branch Net 
+            yT  :   The ouput from trunk Net 
+        
+        Returns:
+
+            dot product of two net outputs (bs,1)
+        """
+ 
+        x = torch.zeros(len(yT),1)
+        for i in range(len(yT)):             #or len(yB) should be same as batch size
+            
+            #print(f"shape of yT:{yT[i].shape}, yB:{yB[i].shape}")
+            x[i] = torch.dot(yB[i],yT[i])
+        
+        device      = ("cuda:0" if torch.cuda.is_available() else "cpu" )
+
+        if device == "cuda:0":
+            x = x.to(device)
+        #print(f"Device of gpu_tensor yT:{yT.device}, yB:{yB.device}, x:{x.device}")
+
+        return x
+
+
+    def elementwise_multiply(self, yB, yT, window_size):
+        result = []
+        for i in range(yB.size(0) - window_size + 1):
+            window1 = yB[i:i+window_size]
+            window2 = yT[i:i+window_size]
+            result.append(torch.mul(window1, window2))
+        
+        x = torch.stack(result)
+        #print(f"shape of x:{x.shape}, x0:{x[0].shape}, device: {x.device}")
+        return x
+
+    def sliding_window_multiply(self, yB, yT):
+
+        yB_np = yB.detach().cpu().numpy()
+        yT_np = yT.detach().cpu().numpy()
+
+        #print(f"shape of yB_np:{yB_np.shape}, yb0: {yB_np[0]}")
+        x = torch.zeros(len(yT), self.mrg_in)
+
+        for i in range(len(yT)):                                                     #or len(yB) should be same as batch size
+            
+            #print(f"shape of yT:{yT[i].shape}, yB:{yB[i].shape}")
+            x[i] = torch.from_numpy(np.convolve( yB_np[i] , yT_np[i] ))
+        
+
+        device      = ("cuda:0" if torch.cuda.is_available() else "cpu" )
+
+        if device == "cuda:0":
+            x = x.to(device)
     
+        #print(f"shape of x:{x.shape}, x0:{x[0].shape}, device: {x.device}")
+        return x
+
     def forward(self,xB,xT):
         """"
         Feed-forward Propagation
@@ -247,12 +327,10 @@ class DeepONet(nn.Module):
     
         xT = self.trunkNet(xT)
 
-        x =  self.Attn_Operator(xB,xT)
+        x =  self.sliding_window_multiply(xB, xT)
 
         return self.mrgNet(x)
     
-
-
 
 if __name__ == "__main__":
     brh_in=5; brh_out=5; brh_hidden=20; brh_nlayer=2; brh_act=nn.Tanh() 

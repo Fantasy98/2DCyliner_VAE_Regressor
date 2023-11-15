@@ -14,13 +14,13 @@ class deepOnet_Config:
     trk_act         =   nn.Tanh()
 
 
-    mrg_in          =   10
+    mrg_in          =   9
     mrg_out         =   5
     mrg_hidden      =   512
     mrg_nlayer      =   4
     mrg_act         =   nn.Tanh()
     
-    Epoch           =   10
+    Epoch           =   97
     lr              =   1e-3 
     batch_size      =   512
     
