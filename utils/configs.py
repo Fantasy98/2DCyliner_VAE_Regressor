@@ -13,14 +13,15 @@ class deepOnet_Config:
     trk_nlayer      =   4
     trk_act         =   nn.Tanh()
 
-
-    mrg_in          =   9
+    mrg_in          =   10
     mrg_out         =   5
     mrg_hidden      =   512
     mrg_nlayer      =   4
     mrg_act         =   nn.Tanh()
+    mrg_typ         =   "concat_in_act"
+    mrg_exl         =   2
     
-    Epoch           =   97
+    Epoch           =   100
     lr              =   1e-3 
     batch_size      =   512
     
@@ -53,7 +54,7 @@ def Make_Name(cfg):
                     f"{cfg.trk_in}tin_{cfg.trk_out}tout_{cfg.trk_hidden}th_{cfg.trk_nlayer}tn_" + \
                     f"{cfg.trk_in}min_{cfg.trk_out}mout_{cfg.trk_hidden}mh_{cfg.trk_nlayer}mn_" + \
                     f"{cfg.Epoch}epoch_{cfg.batch_size}bs_{int(cfg.train_split*100)}ptrain_"+\
-                    f"{cfg.early_stop}ES_{cfg.patience}P"
+                    f"{cfg.early_stop}ES_{cfg.patience}P_mrg_typ_{cfg.mrg_typ}_exl_{cfg.mrg_exl}"
 
     return case_name    
                     

@@ -184,10 +184,17 @@ class DeepONet(nn.Module):
         
         model = nn.Sequential()
 
+        ## Build extra layer
+        layer   =   nn.Linear(mrg_in, mrg_in);
+        nn.init.xavier_normal_(layer.weight); nn.init.zeros_(layer.bias)
+        model.add_module("mrg_exl", layer)
+        model.add_module(f"mrg_exl_act", mrg_act)
+
         ## Build input 
         layer   =   nn.Linear(mrg_in, mrg_hidden);
         nn.init.xavier_normal_(layer.weight); nn.init.zeros_(layer.bias)
         model.add_module("mrg_in", layer)
+        model.add_module(f"mrg_in_act", mrg_act)
         
         ## Build hidden layers
         for i in range(mrg_nlayer):
@@ -203,6 +210,52 @@ class DeepONet(nn.Module):
 
         print(f"INFO: Trunk Built, Architecture: \n{model.eval}")
         return model
+
+    def Build_Merge_enco_Net(self, mrg_in, mrg_out, mrg_hidden, mrg_nlayer, mrg_act:nn.Tanh()):
+        """
+        The function for bulidng the Network of Trunk : 
+            
+        Args: 
+
+            mrg_in      :  (int) Input of the Trunk  Net
+
+            mrg_out     :  (int) Output of the Trunk  Net
+            
+            mrg_hidden  :  (int) Hidden size of the Trunk  Net
+            
+            mrg_nlayer  :  (int) Number of layer of the Trunk  Net
+            
+            mrg_act     :  (nn.module) Activation Func of the Trunk  Net
+        
+        Returns:
+
+            model       :   (nn.Module) Architecture for the Trunk  Net
+        """
+
+        
+        model = nn.Sequential()
+
+        ## Build input 
+        layer   =   nn.Linear(mrg_in, mrg_in);
+        nn.init.xavier_normal_(layer.weight); nn.init.zeros_(layer.bias)
+        model.add_module("mrg_in", layer)
+        model.add_module(f"mrg_in_act", mrg_act)
+        
+        ## Build hidden layers
+        for i in range(mrg_nlayer):
+            layer   =   nn.Linear(mrg_in - i, mrg_hidden-i-1);
+            nn.init.xavier_normal_(layer.weight); nn.init.zeros_(layer.bias)    
+            model.add_module(f"mrg_hid_{i+1}", layer)
+            model.add_module(f"mrg_act_{i+1}", mrg_act)
+        
+        ## Build output
+        layer   =   nn.Linear(mrg_in - mrg_nlayer, mrg_out);
+        nn.init.xavier_normal_(layer.weight); nn.init.zeros_(layer.bias)
+        model.add_module("mrg_out", layer)
+
+        print(f"INFO: Trunk Built, Architecture: \n{model.eval}")
+        return model
+
 
     def Attn_Operator(self, yB, yT):
         """
@@ -303,7 +356,7 @@ class DeepONet(nn.Module):
             x[i] = torch.from_numpy(np.convolve( yB_np[i] , yT_np[i] ))
         
 
-        device      = ("cuda:0" if torch.cuda.is_available() else "cpu" )
+        device   = ("cuda:0" if torch.cuda.is_available() else "cpu" )
 
         if device == "cuda:0":
             x = x.to(device)
@@ -311,6 +364,15 @@ class DeepONet(nn.Module):
         #print(f"shape of x:{x.shape}, x0:{x[0].shape}, device: {x.device}")
         return x
 
+    """
+    def sliding_window_multiply_torch(self, yB, yT):
+        yB = yB.view(-1, 1, self.mrg_in)
+        yT = yT.view(-1, 1, self.mrg_in)
+
+        x = F.conv1d(yB, yT.transpose(1, 2)).view(-1, self.mrg_in)
+        print(f"shape of x:{x.shape}, x0:{x[0].shape}, device: {x.device}")
+        return x
+    """
     def forward(self,xB,xT):
         """"
         Feed-forward Propagation
@@ -327,7 +389,7 @@ class DeepONet(nn.Module):
     
         xT = self.trunkNet(xT)
 
-        x =  self.sliding_window_multiply(xB, xT)
+        x =  self.Concat_Operator(xB, xT)
 
         return self.mrgNet(x)
     
