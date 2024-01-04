@@ -31,6 +31,7 @@ save_fig    =   "04_Figs/"
 print("#"*30)
 print("INFO: Generate Data:")
 
+#data        =   np.load(data_path + "full_genpz_split_scaledZ.npz",mmap_mode="r")
 data        =   np.load(data_path + "full_genpz_split.npz",mmap_mode="r")
 print(f"INFO: Data loaded, keys:")
 for k in data.files:
@@ -38,7 +39,8 @@ for k in data.files:
 
 dataset_train = data['dataset_train']
 dataset_test  = data['dataset_test']
-
+#z_min =  data['z_min']
+#z_max =  data['z_max']
 
 t_trn     = dataset_train[:,0]
 r_trn     = dataset_train[:,1]
@@ -107,13 +109,18 @@ print(f"INFO: CheckPoint saved!")
 print("#"*30)
 print("Validating On Training Data")
 
+z_sample_p_trn  = model(torch.from_numpy(dataset_train[:,:2]).float().to(device), torch.from_numpy(z_trn_hlp).float().to(device)).detach().cpu().numpy()
 
-z_sample_p  = model(torch.from_numpy(dataset_train[:,:2]).float().to(device), torch.from_numpy(z_trn_hlp).float().to(device)).detach().cpu().numpy()
+#z_trn_out_rescaled = (z_trn_out + 1) * (z_max - z_min) / 2 + z_min
+#z_sample_p_trn_rescaled = (z_sample_p_trn + 1) * (z_max - z_min) / 2 + z_min
+
+z_trn_out_rescaled = z_trn_out
+z_sample_p_trn_rescaled = z_sample_p_trn
 
 for i in range(z_tst_out.shape[-1]):
     fig, axs = plt.subplots(1,1)
-    axs.plot(dataset_train[:,1], z_trn_out[:,i], ".", c = cc.black)
-    axs.plot(dataset_train[:,1], z_sample_p[:,i], ".", c = cc.red)
+    axs.plot(dataset_train[:,1], z_trn_out_rescaled[:,i], ".", c = cc.black)
+    axs.plot(dataset_train[:,1], z_sample_p_trn_rescaled[:,i], ".", c = cc.red)
     axs.set_xlabel("Radius")
     axs.set_ylabel(rf"$z_{i}$")
     plt.legend(["Reference", "Prediction"])
@@ -123,18 +130,47 @@ for i in range(z_tst_out.shape[-1]):
 print("#"*30)
 print("Validating On test data")
 
-z_sample_p  = model(torch.from_numpy(dataset_test[:,:2]).float().to(device), torch.from_numpy(z_tst_hlp).float().to(device)).detach().cpu().numpy()
+z_sample_p_tst  = model(torch.from_numpy(dataset_test[:,:2]).float().to(device), torch.from_numpy(z_tst_hlp).float().to(device)).detach().cpu().numpy()
+
+#z_tst_out_rescaled = (z_tst_out + 1) * (z_max - z_min) / 2 + z_min
+#z_sample_p_tst_rescaled = (z_sample_p_tst + 1) * (z_max - z_min) / 2 + z_min
+
+z_tst_out_rescaled = z_tst_out
+z_sample_p_tst_rescaled = z_sample_p_tst
+
 np.savez_compressed(save_pred + case_name + '.npz',
-                    zp  = z_sample_p,)
+                    zp_trn  = z_sample_p_trn_rescaled, zp_tst  = z_sample_p_tst_rescaled,
+                    gen_params_trn= dataset_train[:,:2],gen_params_tst= dataset_test[:,:2], 
+                    z_trn_out =z_trn_out_rescaled, z_tst_out=z_tst_out_rescaled)
                  
 for i in range(z_tst_out.shape[-1]):
     fig, axs = plt.subplots(1,1)
-    axs.plot(dataset_test[:,1], z_tst_out[:,i], ".", c = cc.black)
-    axs.plot(dataset_test[:,1], z_sample_p[:,i], ".", c = cc.red)
+    axs.plot(dataset_test[:,1], z_tst_out_rescaled[:,i], ".", c = cc.black)
+    axs.plot(dataset_test[:,1], z_sample_p_tst_rescaled[:,i], ".", c = cc.red)
     axs.set_xlabel("Radius")
     axs.set_ylabel(rf"$z_{i}$")
     plt.legend(["Reference", "Prediction"])
     plt.savefig(save_fig + f"Test_Z_{i+1}_" +  case_name + ".jpg", bbox_inches='tight')
+
+
+
+print(f"The range of t:{np.min(t_trn , axis = 0), np.max(t_trn , axis = 0) }")
+print(f"The range of r:{np.min(r_trn , axis = 0), np.max(r_trn , axis = 0) }")
+
+
+print(f"The range of t:{np.min(t_tst , axis = 0), np.max(t_tst , axis = 0) }")
+print(f"The range of r:{np.min(r_tst , axis = 0), np.max(r_tst , axis = 0) }")
+
+
+print(f"The range of z_trn_out:{np.min(z_trn_out_rescaled , axis = 0), np.max(z_trn_out_rescaled , axis = 0) }")
+print(f"The range of z_trn_pred_scaled:{np.min(z_sample_p_trn_rescaled , axis = 0), np.max(z_sample_p_trn_rescaled , axis = 0) }")
+
+print(f"The range of z_tst_out:{np.min(z_tst_out_rescaled , axis = 0), np.max(z_tst_out_rescaled , axis = 0) }")
+print(f"The range of z_tst_pred_scaled:{np.min(z_sample_p_tst_rescaled , axis = 0), np.max(z_sample_p_tst_rescaled , axis = 0) }")
+
+
+#print(z_min)
+#print(z_max)
 
 
 print("Done")
